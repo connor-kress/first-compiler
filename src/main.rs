@@ -6,6 +6,9 @@ use std::io::prelude::*;
 use std::path::PathBuf;
 use std::process::exit;
 
+mod tokenize;
+use tokenize::{Token, Tokens};
+
 #[derive(Debug)]
 struct CompilationError {
     msg: String,
@@ -43,6 +46,11 @@ fn main() {
         eprintln!("File not found: {}", path_str);
         exit(exitcode::DATAERR);
     });
-    dbg!(&data);
+    // dbg!(&data);
+    let tokens = Tokens::from(data.chars());
+    println!("{:?}", tokens.collect::<Vec<Token>>());
+    // for token in tokens {
+    //     println!("{:?}", token);
+    // }
     exit(exitcode::OK);
 }

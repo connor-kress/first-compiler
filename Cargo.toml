@@ -1,5 +1,5 @@
 [package]
-name = "compiler"
+name = "fcompiler"
 version = "0.1.0"
 edition = "2021"
 
@@ -7,3 +7,4 @@ edition = "2021"
 
 [dependencies]
 exitcode = "1.1.2"
+lazy_static = "1.4.0"

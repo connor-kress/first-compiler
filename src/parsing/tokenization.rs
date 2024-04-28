@@ -5,6 +5,14 @@ use std::{
 };
 
 #[derive(Debug, Clone)]
+pub enum PrimativeType {
+    Int,
+    Float,
+    Bool,
+    Char,
+}
+
+#[derive(Debug, Clone)]
 pub enum Token {
     Lparen,
     Rparen,
@@ -15,11 +23,18 @@ pub enum Token {
     Comma,
     Semi,
     Dot,
-    Pound,
+    // Pound,
+    For,
+    If,
+    While,
+    Return,
+    // Include,
     Op(String),
     Symbol(String),
     StrLit(String),
     NumLit(String),
+
+    Type(PrimativeType),
 }
 
 lazy_static! {
@@ -33,10 +48,23 @@ lazy_static! {
         (',', Token::Comma),
         (';', Token::Semi),
         ('.', Token::Dot),
-        ('#', Token::Pound),
+        // ('#', Token::Pound),
     ]);
     static ref OPERATOR_CHARS: HashSet<char> =
         HashSet::from(['+', '-', '*', '/', '%', '|', '&', '^', '!', '=', '<', '>']);
+    static ref KEYWORDS: HashMap<&'static str, Token> = HashMap::from([
+        ("for", Token::For),
+        ("if", Token::If),
+        ("while", Token::While),
+        ("return", Token::Return),
+        // ("include", Token::Include),
+    ]);
+    static ref PRIMATIVE_TYPES: HashMap<&'static str, PrimativeType> = HashMap::from([
+        ("int", PrimativeType::Int),
+        ("float", PrimativeType::Float),
+        ("bool", PrimativeType::Bool),
+        ("char", PrimativeType::Char),
+    ]);
 }
 
 pub struct Tokens<It: Iterator<Item = char>> {
@@ -55,7 +83,7 @@ where
     }
 }
 
-fn read_symbol<It>(data: &mut Peekable<It>) -> Token
+fn read_alphabetic<It>(data: &mut Peekable<It>) -> Token
 where
     It: Iterator<Item = char>,
 {
@@ -68,7 +96,13 @@ where
             break;
         }
     }
-    Token::Symbol(acc)
+    if let Some(token) = KEYWORDS.get(acc.as_str()) {
+        token.clone()
+    } else if let Some(prim) = PRIMATIVE_TYPES.get(acc.as_str()) {
+        Token::Type(prim.clone())
+    } else {
+        Token::Symbol(acc)
+    }
 }
 
 fn read_numeric_literal<It>(data: &mut Peekable<It>) -> Token
@@ -136,7 +170,7 @@ where
             let _ = self.data.next();
             Some(token.clone())
         } else if next.is_alphabetic() || *next == '_' {
-            Some(read_symbol(&mut self.data))
+            Some(read_alphabetic(&mut self.data))
         } else if next.is_numeric() {
             Some(read_numeric_literal(&mut self.data))
         } else if *next == '"' {

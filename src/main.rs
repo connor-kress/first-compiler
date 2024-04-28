@@ -6,8 +6,8 @@ use std::io::prelude::*;
 use std::path::PathBuf;
 use std::process::exit;
 
-mod tokenize;
-use tokenize::{Token, Tokens};
+mod parsing;
+use parsing::{Token, Tokens};
 
 #[derive(Debug)]
 struct CompilationError {

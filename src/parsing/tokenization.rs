@@ -4,15 +4,16 @@ use std::{
     iter::Peekable,
 };
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum PrimativeType {
     Int,
     Float,
     Bool,
     Char,
+    Void,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum Token {
     Lparen,
     Rparen,
@@ -64,6 +65,7 @@ lazy_static! {
         ("float", PrimativeType::Float),
         ("bool", PrimativeType::Bool),
         ("char", PrimativeType::Char),
+        ("void", PrimativeType::Void),
     ]);
 }
 
@@ -71,10 +73,7 @@ pub struct Tokens<It: Iterator<Item = char>> {
     data: Peekable<It>,
 }
 
-impl<It> From<It> for Tokens<It>
-where
-    It: Iterator<Item = char>,
-{
+impl<It: Iterator<Item = char>> From<It> for Tokens<It> {
     #[allow(dead_code)]
     fn from(chars: It) -> Self {
         Tokens {
@@ -83,10 +82,7 @@ where
     }
 }
 
-fn read_alphabetic<It>(data: &mut Peekable<It>) -> Token
-where
-    It: Iterator<Item = char>,
-{
+fn read_alphabetic<It: Iterator<Item = char>>(data: &mut Peekable<It>) -> Token {
     let mut acc = data.next().unwrap().to_string();
     while data.peek().is_some() {
         let c = data.peek().unwrap();
@@ -105,10 +101,7 @@ where
     }
 }
 
-fn read_numeric_literal<It>(data: &mut Peekable<It>) -> Token
-where
-    It: Iterator<Item = char>,
-{
+fn read_numeric_literal<It: Iterator<Item = char>>(data: &mut Peekable<It>) -> Token {
     let mut acc = data.next().unwrap().to_string();
     while data.peek().is_some() {
         let c = data.peek().unwrap();
@@ -121,10 +114,7 @@ where
     Token::NumLit(acc)
 }
 
-fn read_string_literal<It>(data: &mut Peekable<It>) -> Token
-where
-    It: Iterator<Item = char>,
-{
+fn read_string_literal<It: Iterator<Item = char>>(data: &mut Peekable<It>) -> Token {
     let _ = data.next();
     let mut acc = String::new();
     while data.peek().is_some() {
@@ -139,10 +129,7 @@ where
     Token::StrLit(acc)
 }
 
-fn read_operator<It>(data: &mut Peekable<It>) -> Token
-where
-    It: Iterator<Item = char>,
-{
+fn read_operator<It: Iterator<Item = char>>(data: &mut Peekable<It>) -> Token {
     let mut acc = data.next().unwrap().to_string();
     while data.peek().is_some() {
         let c = data.peek().unwrap();
@@ -155,10 +142,7 @@ where
     Token::Op(acc)
 }
 
-impl<It> Iterator for Tokens<It>
-where
-    It: Iterator<Item = char>,
-{
+impl<It: Iterator<Item = char>> Iterator for Tokens<It> {
     type Item = Token;
 
     fn next(&mut self) -> Option<Self::Item> {

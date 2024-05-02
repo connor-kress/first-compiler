@@ -1,6 +1,4 @@
-use core::fmt;
 use std::env;
-use std::error::Error;
 use std::fs::File;
 use std::io::prelude::*;
 use std::path::PathBuf;
@@ -9,18 +7,7 @@ use std::process::exit;
 mod parsing;
 use parsing::{Token, Tokens};
 
-#[derive(Debug)]
-struct CompilationError {
-    msg: String,
-}
-
-impl fmt::Display for CompilationError {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "Compilation error: {}", self.msg)
-    }
-}
-
-impl Error for CompilationError {}
+use crate::parsing::parse_function;
 
 fn get_content(path_str: &String) -> std::io::Result<String> {
     let base_path = env::current_dir()?;
@@ -47,10 +34,13 @@ fn main() {
         exit(exitcode::DATAERR);
     });
     // dbg!(&data);
-    let tokens = Tokens::from(data.chars());
-    println!("{:?}", tokens.collect::<Vec<Token>>());
+    let tokens: Vec<Token> = Tokens::from(data.chars()).collect();
+    println!("{:?}", &tokens);
     // for token in tokens {
     //     println!("{:?}", token);
     // }
+    let func = parse_function(&mut tokens.clone().into_iter().peekable());
+    println!("{:?}", func);
+
     exit(exitcode::OK);
 }

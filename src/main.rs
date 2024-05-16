@@ -7,6 +7,8 @@ use std::process::exit;
 mod parsing;
 use parsing::{Token, Tokens};
 
+mod error;
+
 use crate::parsing::parse_function;
 
 fn get_content(path_str: &String) -> std::io::Result<String> {

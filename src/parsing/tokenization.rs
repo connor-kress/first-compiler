@@ -27,6 +27,7 @@ pub enum Token {
     // Pound,
     For,
     If,
+    Else,
     While,
     Return,
     // Include,
@@ -52,10 +53,11 @@ lazy_static! {
         // ('#', Token::Pound),
     ]);
     static ref OPERATOR_CHARS: HashSet<char> =
-        HashSet::from(['+', '-', '*', '/', '%', '|', '&', '^', '!', '=', '<', '>']);
+        HashSet::from(['+', '-', '*', '/', '%', '|', '&', '^', '~', '!', '=', '<', '>']);
     static ref KEYWORDS: HashMap<&'static str, Token> = HashMap::from([
         ("for", Token::For),
         ("if", Token::If),
+        ("else", Token::Else),
         ("while", Token::While),
         ("return", Token::Return),
         // ("include", Token::Include),
@@ -115,14 +117,14 @@ fn read_numeric_literal<It: Iterator<Item = char>>(data: &mut Peekable<It>) -> T
 }
 
 fn read_string_literal<It: Iterator<Item = char>>(data: &mut Peekable<It>) -> Token {
-    let _ = data.next();
+    let _ = data.next().unwrap();
     let mut acc = String::new();
     while data.peek().is_some() {
         let c = data.peek().unwrap();
         if *c != '"' {
             acc.push(data.next().unwrap());
         } else {
-            let _ = data.next();
+            let _ = data.next().unwrap();
             break;
         }
     }

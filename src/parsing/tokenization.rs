@@ -23,7 +23,6 @@ pub enum Token {
     Rcurly,
     Comma,
     Semi,
-    Dot,
     // Pound,
     For,
     If,
@@ -49,11 +48,10 @@ lazy_static! {
         ('}', Token::Rcurly),
         (',', Token::Comma),
         (';', Token::Semi),
-        ('.', Token::Dot),
         // ('#', Token::Pound),
     ]);
     static ref OPERATOR_CHARS: HashSet<char> =
-        HashSet::from(['+', '-', '*', '/', '%', '|', '&', '^', '~', '!', '=', '<', '>']);
+        HashSet::from(['+', '-', '*', '/', '%', '|', '&', '^', '~', '!', '=', '<', '>', '.']);
     static ref KEYWORDS: HashMap<&'static str, Token> = HashMap::from([
         ("for", Token::For),
         ("if", Token::If),

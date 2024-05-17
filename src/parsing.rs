@@ -52,7 +52,7 @@ pub enum Expr {
     FloatLit(f64),
     StrLit(String),
     Symbol(String),
-    AttrAccess(Box<Expr>, String),
+    // AttrAccess(Box<Expr>, String),
     Call(Box<Expr>, Vec<Expr>),
     Index(Box<Expr>, Box<Expr>),
     // Assign(Box<Expr>, Box<Expr>),
@@ -172,7 +172,7 @@ fn parse_token_expr(token: &Token) -> Result<Expr, CompilationError> {
         Token::NumLit(s) => Ok(parse_numeric_literal(&s)?),
         _ => {
             let msg = format!("Token ({:?}) does not represent an expression", token);
-            return Err(msg.into());
+            Err(msg.into())
         }
     }
 }
@@ -200,11 +200,11 @@ fn valid_unary_prefix_operator(op: &String, prev: Option<&BuffElement>) -> bool 
     }
 }
 
-fn get_max_priority(buff: &Vec<BuffElement>) -> Result<(u8, bool), CompilationError> {
+fn get_max_priority(buf: &Vec<BuffElement>) -> Result<(u8, bool), CompilationError> {
     let mut max_p = 0;
     let mut right_associative = false;
     let mut prev: Option<&BuffElement> = None;
-    for ele in buff {
+    for ele in buf {
         if let BuffElement::Token(t) = ele {
             if let Token::Op(s) = t {
                 if valid_unary_prefix_operator(s, prev) {
@@ -221,11 +221,8 @@ fn get_max_priority(buff: &Vec<BuffElement>) -> Result<(u8, bool), CompilationEr
                     let msg = format!("Operator `{s}` does not exist");
                     return Err(msg.into());
                 }
-            } else if *t == Token::Dot {
-                if UNARY_POSTFIX_PRIORITY > max_p {
-                    max_p = UNARY_POSTFIX_PRIORITY;
-                    right_associative = false;
-                }
+            } else {
+                panic!("Token `{t:?}` should not be in buffer");
             }
         } else if let BuffElement::ArgList(_, _) = ele {
             if let Some(BuffElement::Token(_)) = prev {
@@ -252,13 +249,13 @@ fn get_max_priority(buff: &Vec<BuffElement>) -> Result<(u8, bool), CompilationEr
 /// Token::Symbol("foo") => Expr::Symbol("foo")
 /// Token::NumLit("3.14") => Expr::FloatLit(3.14)
 /// ```
-fn parse_atomic_expressions(buff: &mut Vec<BuffElement>) -> Result<(), CompilationError> {
-    for ele in buff {
+fn parse_atomic_expressions(buf: &mut Vec<BuffElement>) -> Result<(), CompilationError> {
+    for ele in buf {
         let BuffElement::Token(t) = ele else {
             continue;
         };
         match *t {
-            Token::Op(_) | Token::Dot => {}
+            Token::Op(_) => {}
             Token::Symbol(_) | Token::NumLit(_) | Token::StrLit(_) => {
                 *ele = BuffElement::Expr(parse_token_expr(t)?);
             }
@@ -275,9 +272,9 @@ fn parse_atomic_expressions(buff: &mut Vec<BuffElement>) -> Result<(), Compilati
 ///
 /// [Expr::IntLit(1), Token::Op("+"), Expr::IntLit(2)]
 /// ```
-fn normalize_arg_lists(buff: &mut Vec<BuffElement>) {
+fn normalize_arg_lists(buf: &mut Vec<BuffElement>) {
     let mut prev: Option<&mut BuffElement> = None;
-    for ele in &mut *buff {
+    for ele in &mut *buf {
         let BuffElement::ArgList(v, p) = ele else {
             prev = Some(ele);
             continue;
@@ -353,29 +350,29 @@ fn get_unary_prefix_operator(
     Ok(Expr::UnaryOp(Box::new(base_expr.clone()), op))
 }
 
-fn get_attr_access(
-    prev: Option<&BuffElement>,
-    next: Option<&BuffElement>,
-) -> Result<Expr, CompilationError> {
-    if prev.is_none() || next.is_none() {
-        return Err("Unexpected dot".into());
-    }
-    let BuffElement::Expr(base_expr) = prev.unwrap() else {
-        let msg = format!(
-            "Expected attribute access on expression, found {:?} instead",
-            prev.unwrap()
-        );
-        return Err(msg.into());
-    };
-    let BuffElement::Expr(Expr::Symbol(attr_name)) = next.unwrap() else {
-        let msg = format!("Expected attribute name, found {:?} instead", next.unwrap());
-        return Err(msg.into());
-    };
-    Ok(Expr::AttrAccess(
-        Box::new(base_expr.clone()),
-        attr_name.clone(),
-    ))
-}
+// fn get_attr_access(
+//     prev: Option<&BuffElement>,
+//     next: Option<&BuffElement>,
+// ) -> Result<Expr, CompilationError> {
+//     if prev.is_none() || next.is_none() {
+//         return Err("Unexpected dot".into());
+//     }
+//     let BuffElement::Expr(base_expr) = prev.unwrap() else {
+//         let msg = format!(
+//             "Expected attribute access on expression, found {:?} instead",
+//             prev.unwrap()
+//         );
+//         return Err(msg.into());
+//     };
+//     let BuffElement::Expr(Expr::Symbol(attr_name)) = next.unwrap() else {
+//         let msg = format!("Expected attribute name, found {:?} instead", next.unwrap());
+//         return Err(msg.into());
+//     };
+//     Ok(Expr::AttrAccess(
+//         Box::new(base_expr.clone()),
+//         attr_name.clone(),
+//     ))
+// }
 
 fn get_index_expression(
     prev: Option<&BuffElement>,
@@ -414,7 +411,7 @@ fn recursively_get_buffer<It: Iterator<Item = Token>>(
     loop {
         let token = peek_token(tokens, "Unfinished expression")?;
         buf.push(match *token {
-            T::Symbol(_) | T::Op(_) | T::NumLit(_) | T::StrLit(_) | T::Dot => {
+            T::Symbol(_) | T::Op(_) | T::NumLit(_) | T::StrLit(_) => {
                 BuffElement::Token(tokens.next().unwrap())
             }
             T::Lparen | T::Lbrack => {
@@ -465,7 +462,6 @@ fn parse_expr<It: Iterator<Item = Token>>(
         dbg!(max_p, right_associative);
         let mut i = if right_associative { buf.len() - 1 } else { 0 };
         let step = |i: &mut usize| {
-            println!("Called step");
             if right_associative {
                 *i -= 1;
                 if *i == 0 {
@@ -486,7 +482,7 @@ fn parse_expr<It: Iterator<Item = Token>>(
             let next = buf.get(i + 1);
             if let BuffElement::Token(t) = curr {
                 if let Token::Op(s) = t {
-                    println!("Op '{s}' found");
+                    println!("Op(\"{s}\") found");
                     if valid_unary_prefix_operator(s, prev) && max_p == UNARY_PREFIX_PRIORITY {
                         println!("Op(\"{s}\") is a unary prefix");
                         let expr = get_unary_prefix_operator(next, s.clone())?;
@@ -503,30 +499,14 @@ fn parse_expr<It: Iterator<Item = Token>>(
                         buf.insert(i - 1, BuffElement::Expr(expr));
                         i -= 1;
                     } else {
-                        println!("Op(\"{s}\") is not of the correct priority");
                         if !step(&mut i) {
                             break;
                         }
                     }
-                } else if let Token::Dot = t {
-                    println!("Dot found");
-                    if max_p != UNARY_POSTFIX_PRIORITY {
-                        if !step(&mut i) {
-                            break;
-                        }
-                        continue;
-                    }
-                    let expr = get_attr_access(prev, next)?;
-                    buf.remove(i - 1);
-                    buf.remove(i - 1);
-                    buf.remove(i - 1);
-                    buf.insert(i - 1, BuffElement::Expr(expr));
-                    i -= 1;
                 } else {
                     panic!("Unexpeccted token ({t:?})");
                 }
             } else if let BuffElement::ArgList(v, p) = curr {
-                println!("ArgList found");
                 if let Token::Lparen = p {
                     if max_p != UNARY_POSTFIX_PRIORITY {
                         if !step(&mut i) {
